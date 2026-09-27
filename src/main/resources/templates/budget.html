@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Set Budget</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand">
+        <div class="brand-icon">₹</div>
+        <div>
+            <div class="brand-name">LEDGER</div>
+            <div class="brand-sub">Expense Tracker</div>
+        </div>
+    </div>
+    <nav>
+        <a href="/">              <span class="nav-icon">◈</span> Dashboard</a>
+        <a href="/expenses">      <span class="nav-icon">◎</span> Expenses</a>
+        <a href="/budget-status"> <span class="nav-icon">◉</span> Budget Status</a>
+    </nav>
+</aside>
+
+<main class="main">
+    <div class="page">
+        <h2 class="page-title">Set Budget</h2>
+
+        <div class="card">
+
+            <!-- Month being edited — shown clearly to the user -->
+            <div style="background:#1a1a24; border:1px solid #2a2a35; border-radius:8px;
+                        padding:12px 16px; margin-bottom:20px; font-size:14px; color:#888;">
+                Setting budget for:
+                <span th:text="${monthLabel}"
+                      style="color:#e8d5b7; font-weight:700; margin-left:6px;"></span>
+            </div>
+
+            <p style="color:#888; font-size:14px; margin-bottom:20px;">
+                Enter a spending limit for this month. You'll get a warning at 80%
+                and an alert when you exceed it.
+            </p>
+
+            <form action="/budget" method="post">
+                <!-- Hidden field carries the month to the POST handler -->
+                <input type="hidden" name="month" th:value="${selectedMonth}">
+
+                <div class="form-group">
+                    <label class="form-label">Budget Amount (₹)</label>
+                    <input type="number" name="budgetAmount"
+                           th:placeholder="${currentBudget > 0} ? 'Current: ₹' + ${currentBudget} : 'e.g. 10000'"
+                           step="0.01" min="1" required>
+                </div>
+
+                <button type="submit" class="btn-primary">Save Budget</button>
+            </form>
+
+            <a href="/budget-status" class="back-link">← Back to Budget Status</a>
+        </div>
+    </div>
+</main>
+
+</body>
+</html>

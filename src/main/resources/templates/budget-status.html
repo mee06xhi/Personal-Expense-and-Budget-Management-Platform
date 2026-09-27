@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Budget Status</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand">
+        <div class="brand-icon">₹</div>
+        <div>
+            <div class="brand-name">LEDGER</div>
+            <div class="brand-sub">Expense Tracker</div>
+        </div>
+    </div>
+    <nav>
+        <a href="/">                            <span class="nav-icon">◈</span> Dashboard</a>
+        <a href="/expenses">                    <span class="nav-icon">◎</span> Expenses</a>
+        <a href="/budget-status" class="active"><span class="nav-icon">◉</span> Budget Status</a>
+    </nav>
+</aside>
+
+<main class="main">
+    <div class="page">
+
+        <!-- Page header + Year picker -->
+        <div class="year-row">
+            <h2 class="page-title">Budget Status</h2>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <label>Select Year</label>
+                <select id="yearPicker" class="year-select"></select>
+            </div>
+        </div>
+
+        <!-- ── TOP SUMMARY STRIP ───────────────────────────── -->
+        <div class="summary-strip">
+            <div class="strip-card strip-card--orange">
+                <div class="lbl">Total Annual Budget</div>
+                <div class="val">₹<span id="annualBudget">0</span></div>
+            </div>
+            <div class="strip-card strip-card--blue">
+                <div class="lbl">Average Monthly Budget</div>
+                <div class="val">₹<span id="avgMonthly">0</span></div>
+            </div>
+            <div class="strip-card strip-card--green">
+                <div class="lbl">Total Spent</div>
+                <div class="val">₹<span id="totalSpent">0</span></div>
+            </div>
+        </div>
+
+        <!-- ── BAR CHART ───────────────────────────────────── -->
+        <div class="chart-card">
+            <div class="chart-card-header">
+                <div class="chart-title">Monthly Budget Breakdown</div>
+                <div class="chart-legend">
+                    <span><span class="legend-dot" style="background:#5b9bd5;"></span>Budget Set</span>
+                    <span><span class="legend-dot" style="background:#e07b54;"></span>Amount Spent</span>
+                    <span><span class="legend-dot" style="background:#2a2a40;"></span>Remaining</span>
+                </div>
+            </div>
+            <div style="position:relative; height:260px;">
+                <canvas id="yearlyBarChart"></canvas>
+            </div>
+        </div>
+
+        <!-- ── MONTHLY DETAILS TABLE ───────────────────────── -->
+        <div class="monthly-table-card">
+            <div class="monthly-table-card-header">
+                <h3>Monthly Budget Details</h3>
+            </div>
+            <table class="monthly-table">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Budget Set</th>
+                        <th>Amount Spent</th>
+                        <th>Remaining</th>
+                        <th style="text-align:center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="monthlyTableBody">
+                    <!-- Populated by JS -->
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</main>
+
+<script th:inline="javascript">
+/*<![CDATA[*/
+const serverCurrentMonth = /*[[${currentMonth}]]*/ '2026-04';
+/*]]>*/
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+Chart.defaults.color = '#888';
+Chart.defaults.borderColor = '#1e1e2a';
+Chart.defaults.font.family = 'Georgia, serif';
+
+const MONTH_NAMES = ['January','February','March','April','May','June',
+                     'July','August','September','October','November','December'];
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun',
+                     'Jul','Aug','Sep','Oct','Nov','Dec'];
+
+let barInstance = null;
+
+/* Year picker */
+const initYear   = parseInt((serverCurrentMonth || '2026-04').split('-')[0]);
+const yearPicker = document.getElementById('yearPicker');
+
+for (let y = 2020; y <= initYear; y++) {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    yearPicker.appendChild(opt);
+}
+yearPicker.value = initYear;
+
+/* Load all 12 months for a given year */
+async function loadYear(year) {
+    const promises = MONTH_NAMES.map((_, i) => {
+        const m = String(i + 1).padStart(2, '0');
+        return fetch(`/api/budget-data?month=${year}-${m}`)
+            .then(r => r.json())
+            .catch(() => ({ budget: 0, total: 0, remaining: 0 }));
+    });
+
+    const results = await Promise.all(promises);
+
+    const budgets   = results.map(r => r.budget || 0);
+    const spents    = results.map(r => r.total  || 0);
+    const remaining = results.map((r, i) => budgets[i] > 0 ? budgets[i] - spents[i] : null);
+
+    /* Summary strip */
+    const setBudgetMonths = budgets.filter(b => b > 0);
+    const annualBudget    = setBudgetMonths.reduce((a, b) => a + b, 0);
+    const avgMonthly      = setBudgetMonths.length > 0
+        ? annualBudget / setBudgetMonths.length : 0;
+    const totalSpentYTD   = spents.reduce((a, b) => a + b, 0);
+
+    document.getElementById('annualBudget').textContent = annualBudget.toLocaleString('en-IN');
+    document.getElementById('avgMonthly').textContent   = Math.round(avgMonthly).toLocaleString('en-IN');
+    document.getElementById('totalSpent').textContent   = totalSpentYTD.toLocaleString('en-IN');
+
+    drawBarChart(budgets, spents, remaining);
+    buildTable(year, budgets, spents, remaining);
+}
+
+function drawBarChart(budgets, spents, remaining) {
+    if (barInstance) barInstance.destroy();
+
+    const remForChart = remaining.map(r => (r !== null && r > 0) ? r : 0);
+
+    barInstance = new Chart(document.getElementById('yearlyBarChart'), {
+        type: 'bar',
+        data: {
+            labels: MONTH_SHORT,
+            datasets: [
+                {
+                    label: 'Budget Set',
+                    data: budgets,
+                    backgroundColor: '#5b9bd5',
+                    borderRadius: 4,
+                    borderSkipped: false,
+                    barPercentage: 0.65,
+                    categoryPercentage: 0.75
+                },
+                {
+                    label: 'Amount Spent',
+                    data: spents,
+                    backgroundColor: '#e07b54',
+                    borderRadius: 4,
+                    borderSkipped: false,
+                    barPercentage: 0.65,
+                    categoryPercentage: 0.75
+                },
+                {
+                    label: 'Remaining',
+                    data: remForChart,
+                    backgroundColor: '#2a2a40',
+                    borderRadius: 4,
+                    borderSkipped: false,
+                    barPercentage: 0.65,
+                    categoryPercentage: 0.75
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` ₹${ctx.parsed.y.toLocaleString('en-IN')}`
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { color: '#1e1e2a' }, ticks: { color: '#666' } },
+                y: {
+                    grid: { color: '#1e1e2a' },
+                    ticks: { color: '#666', callback: val => '₹' + val.toLocaleString('en-IN') },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function remainingClass(budget, rem) {
+    if (budget <= 0 || rem === null) return 'remaining-none';
+    if (rem < 0)                     return 'remaining-red';
+    if (rem / budget <= 0.20)        return 'remaining-amber';
+    return 'remaining-green';
+}
+
+function buildTable(year, budgets, spents, remaining) {
+    const tbody = document.getElementById('monthlyTableBody');
+    tbody.innerHTML = '';
+
+    MONTH_NAMES.forEach((name, i) => {
+        const m      = String(i + 1).padStart(2, '0');
+        const budget = budgets[i];
+        const spent  = spents[i];
+        const rem    = remaining[i];
+
+        const tr = document.createElement('tr');
+
+        /* Month name */
+        const tdMonth = document.createElement('td');
+        tdMonth.className = 'col-month';
+        tdMonth.textContent = name;
+        tr.appendChild(tdMonth);
+
+        /* Budget Set */
+        const tdBudget = document.createElement('td');
+        if (budget > 0) {
+            tdBudget.className = 'col-budget';
+            tdBudget.textContent = '₹' + budget.toLocaleString('en-IN');
+        } else {
+            tdBudget.innerHTML = '<span class="no-budget-dash">—</span>';
+        }
+        tr.appendChild(tdBudget);
+
+        /* Amount Spent */
+        const tdSpent = document.createElement('td');
+        if (spent > 0) {
+            tdSpent.className = 'col-spent';
+            tdSpent.textContent = '₹' + spent.toLocaleString('en-IN');
+        } else {
+            tdSpent.innerHTML = '<span class="no-budget-dash">₹0</span>';
+        }
+        tr.appendChild(tdSpent);
+
+        /* Remaining */
+        const tdRem = document.createElement('td');
+        if (budget > 0 && rem !== null) {
+            tdRem.className = remainingClass(budget, rem);
+            tdRem.textContent = (rem < 0 ? '-₹' : '₹') + Math.abs(rem).toLocaleString('en-IN');
+        } else {
+            tdRem.innerHTML = '<span class="no-budget-dash">—</span>';
+        }
+        tr.appendChild(tdRem);
+
+        /* Edit button */
+        const tdActions = document.createElement('td');
+        tdActions.style.textAlign = 'center';
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn-edit-row';
+        editBtn.textContent = '✎ Edit';
+        editBtn.onclick = () => { window.location.href = `/budget?month=${year}-${m}`; };
+        tdActions.appendChild(editBtn);
+        tr.appendChild(tdActions);
+
+        tbody.appendChild(tr);
+    });
+}
+
+yearPicker.addEventListener('change', () => loadYear(parseInt(yearPicker.value)));
+loadYear(initYear);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>All Expenses</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand">
+        <div class="brand-icon">₹</div>
+        <div>
+            <div class="brand-name">LEDGER</div>
+            <div class="brand-sub">Expense Tracker</div>
+        </div>
+    </div>
+    <nav>
+        <a href="/">                      <span class="nav-icon">◈</span> Dashboard</a>
+        <a href="/expenses" class="active"><span class="nav-icon">◎</span> Expenses</a>
+        <a href="/budget-status"><span class="nav-icon">◉</span> Budget Status</a>
+    </nav>
+</aside>
+
+<main class="main">
+    <div class="page">
+        <div class="page-header">
+            <h2 class="page-title">Expenses</h2>
+            <a href="/add-expense"><button class="btn-primary">+ Add Expense</button></a>
+        </div>
+
+        <form action="/expenses" method="get" class="filter-bar">
+
+            <!-- Custom multi-select dropdown -->
+            <div style="position:relative; flex:1; min-width:140px;" id="categoryDropdownWrapper">
+                <div id="categoryDropdownTrigger"
+                    onclick="toggleDropdown()"
+                    style="background:#1a1a24; border:1px solid #2a2a35; border-radius:8px;
+                            color:#e8d5b7; padding:10px 14px; font-size:14px; font-family:Georgia,serif;
+                            cursor:pointer; user-select:none; display:flex;
+                            justify-content:space-between; align-items:center;">
+                    <span id="categoryDropdownLabel">All Categories</span>
+                    <span style="color:#555; font-size:11px;">▾</span>
+                </div>
+
+                <div id="categoryDropdownMenu"
+                    style="display:none; position:absolute; top:calc(100% + 6px); left:0; right:0;
+                            background:#1a1a24; border:1px solid #2a2a35; border-radius:8px;
+                            z-index:999; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+
+                    <label onclick="event.stopPropagation()"
+                        style="display:grid; grid-template-columns:20px 1fr; align-items:center;
+                               gap:8px; padding:10px 14px; cursor:pointer; font-size:14px;
+                               color:#e8d5b7; border-bottom:1px solid #2a2a35; width:100%;"
+                        onmouseover="this.style.background='#22222e'" onmouseout="this.style.background='transparent'">
+
+                        <input type="checkbox" value="Bills" name="category"
+                            th:checked="${selectedCategories != null and selectedCategories.contains('Bills')}"
+                            onchange="updateLabel()"
+                            style="width:14px; height:14px; accent-color:#e07b54; margin:0; padding:0; justify-self:center;">
+                        <span>Bills</span>
+                    </label>
+
+                    <label onclick="event.stopPropagation()"
+                        style="display:grid; grid-template-columns:20px 1fr; align-items:center;
+                               gap:8px; padding:10px 14px; cursor:pointer; font-size:14px;
+                               color:#e8d5b7; border-bottom:1px solid #2a2a35; width:100%;"
+                        onmouseover="this.style.background='#22222e'" onmouseout="this.style.background='transparent'">
+
+                        <input type="checkbox" value="Food &amp; Dining" name="category"
+                            th:checked="${selectedCategories != null and selectedCategories.contains('Food &amp; Dining')}"
+                            onchange="updateLabel()"
+                            style="width:14px; height:14px; accent-color:#e07b54; margin:0; padding:0; justify-self:center;">
+                        <span>Food &amp; Dining</span>
+                    </label>
+
+                    <label onclick="event.stopPropagation()"
+                        style="display:grid; grid-template-columns:20px 1fr; align-items:center;
+                               gap:8px; padding:10px 14px; cursor:pointer; font-size:14px;
+                               color:#e8d5b7; border-bottom:1px solid #2a2a35; width:100%;"
+                        onmouseover="this.style.background='#22222e'" onmouseout="this.style.background='transparent'">
+
+                        <input type="checkbox" value="Shopping" name="category"
+                            th:checked="${selectedCategories != null and selectedCategories.contains('Shopping')}"
+                            onchange="updateLabel()"
+                            style="width:14px; height:14px; accent-color:#e07b54; margin:0; padding:0; justify-self:center;">
+                        <span>Shopping</span>
+                    </label>
+
+                    <label onclick="event.stopPropagation()"
+                        style="display:grid; grid-template-columns:20px 1fr; align-items:center;
+                               gap:8px; padding:10px 14px; cursor:pointer; font-size:14px;
+                               color:#e8d5b7; border-bottom:1px solid #2a2a35; width:100%;"
+                        onmouseover="this.style.background='#22222e'" onmouseout="this.style.background='transparent'">
+
+                        <input type="checkbox" value="Healthcare" name="category"
+                            th:checked="${selectedCategories != null and selectedCategories.contains('Healthcare')}"
+                            onchange="updateLabel()"
+                            style="width:14px; height:14px; accent-color:#e07b54; margin:0; padding:0; justify-self:center;">
+                        <span>Healthcare</span>
+                    </label>
+
+                    <label onclick="event.stopPropagation()"
+                        style="display:grid; grid-template-columns:20px 1fr; align-items:center;
+                               gap:8px; padding:10px 14px; cursor:pointer; font-size:14px;
+                               color:#e8d5b7; border-bottom:1px solid #2a2a35; width:100%;"
+                        onmouseover="this.style.background='#22222e'" onmouseout="this.style.background='transparent'">
+
+                        <input type="checkbox" value="Housing" name="category"
+                            th:checked="${selectedCategories != null and selectedCategories.contains('Housing')}"
+                            onchange="updateLabel()"
+                            style="width:14px; height:14px; accent-color:#e07b54; margin:0; padding:0; justify-self:center;">
+                        <span>Housing</span>
+                    </label>
+
+                    <label onclick="event.stopPropagation()"
+                        style="display:grid; grid-template-columns:20px 1fr; align-items:center;
+                               gap:8px; padding:10px 14px; cursor:pointer; font-size:14px;
+                               color:#e8d5b7; border-bottom:1px solid #2a2a35; width:100%;"
+                        onmouseover="this.style.background='#22222e'" onmouseout="this.style.background='transparent'">
+
+                        <input type="checkbox" value="Groceries" name="category"
+                            th:checked="${selectedCategories != null and selectedCategories.contains('Groceries')}"
+                            onchange="updateLabel()"
+                            style="width:14px; height:14px; accent-color:#e07b54; margin:0; padding:0; justify-self:center;">
+                        <span>Groceries</span>
+                    </label>
+
+                    <label onclick="event.stopPropagation()"
+                        style="display:grid; grid-template-columns:20px 1fr; align-items:center;
+                               gap:8px; padding:10px 14px; cursor:pointer; font-size:14px;
+                               color:#e8d5b7; border-bottom:1px solid #2a2a35; width:100%;"
+                        onmouseover="this.style.background='#22222e'" onmouseout="this.style.background='transparent'">
+
+                        <input type="checkbox" value="Education" name="category"
+                            th:checked="${selectedCategories != null and selectedCategories.contains('Education')}"
+                            onchange="updateLabel()"
+                            style="width:14px; height:14px; accent-color:#e07b54; margin:0; padding:0; justify-self:center;">
+                        <span>Education</span>
+                    </label>
+
+                    <label onclick="event.stopPropagation()"
+                        style="display:grid; grid-template-columns:20px 1fr; align-items:center;
+                               gap:8px; padding:10px 14px; cursor:pointer; font-size:14px;
+                               color:#e8d5b7; border-bottom:1px solid #2a2a35; width:100%;"
+                        onmouseover="this.style.background='#22222e'" onmouseout="this.style.background='transparent'">
+
+                        <input type="checkbox" value="Transportation &amp; Travel" name="category"
+                            th:checked="${selectedCategories != null and selectedCategories.contains('Transportation &amp; Travel')}"
+                            onchange="updateLabel()"
+                            style="width:14px; height:14px; accent-color:#e07b54; margin:0; padding:0; justify-self:center;">
+                        <span>Transportation &amp; Travel</span>
+                    </label>
+
+                    <label onclick="event.stopPropagation()"
+                        style="display:grid; grid-template-columns:20px 1fr; align-items:center;
+                               gap:8px; padding:10px 14px; cursor:pointer; font-size:14px;
+                               color:#e8d5b7; border-bottom:1px solid #2a2a35; width:100%;"
+                        onmouseover="this.style.background='#22222e'" onmouseout="this.style.background='transparent'">
+
+                        <input type="checkbox" value="Miscellaneous" name="category"
+                            th:checked="${selectedCategories != null and selectedCategories.contains('Miscellaneous')}"
+                            onchange="updateLabel()"
+                            style="width:14px; height:14px; accent-color:#e07b54; margin:0; padding:0; justify-self:center;">
+                        <span>Miscellaneous</span>
+                    </label>
+
+                    <label onclick="event.stopPropagation()"
+                        style="display:grid; grid-template-columns:20px 1fr; align-items:center;
+                               gap:8px; padding:10px 14px; cursor:pointer; font-size:14px;
+                               color:#e8d5b7; width:100%;"
+                        onmouseover="this.style.background='#22222e'" onmouseout="this.style.background='transparent'">
+
+                        <input type="checkbox" value="Other" name="category"
+                            th:checked="${selectedCategories != null and selectedCategories.contains('Other')}"
+                            onchange="updateLabel()"
+                            style="width:14px; height:14px; accent-color:#e07b54; margin:0; padding:0; justify-self:center;">
+                        <span>Other</span>
+                    </label>
+
+                </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:4px; flex:1; min-width:140px;">
+                <label style="font-size:11px; color:#888; letter-spacing:1px; text-transform:uppercase;">From</label>
+                <input type="date" name="fromDate" th:value="${fromDate}" style="margin:0;">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px; flex:1; min-width:140px;">
+                <label style="font-size:11px; color:#888; letter-spacing:1px; text-transform:uppercase;">To</label>
+                <input type="date" name="toDate" th:value="${toDate}" style="margin:0;">
+            </div>
+
+            <button type="submit" class="btn-primary">Filter</button>
+            <a href="/expenses"><button type="button" class="btn-ghost">Clear</button></a>
+        </form>
+
+        <div class="card" style="max-width:100%; padding:0; overflow:hidden;">
+            <table class="expense-table">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Date</th>
+                        <th style="text-align:right;">Amount</th>
+                        <th style="text-align:center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="expense : ${expenses}">
+                        <td>
+                            <span class="cat-pill" th:text="${expense.category}"></span>
+                        </td>
+                        <td th:text="${expense.description}"></td>
+                        <td class="col-date" th:text="${expense.date}"></td>
+                        <td class="col-amount">
+                            ₹<span th:text="${expense.amount}"></span>
+                        </td>
+                        <td style="text-align:center; white-space:nowrap;">
+                            <a th:href="@{/edit-expense/{id}(id=${expense.id})}">
+                                <button type="button" class="btn-action-edit">✎ Edit</button>
+                            </a>
+                            <form th:action="@{/delete-expense/{id}(id=${expense.id})}"
+                                  method="post" style="display:inline;"
+                                  onsubmit="return confirm('Delete this expense? This cannot be undone.');">
+                                <button type="submit" class="btn-action-delete">✕ Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr class="empty-row" th:if="${#lists.isEmpty(expenses)}">
+                        <td colspan="5">No expenses found.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</main>
+
+<script>
+    function toggleDropdown() {
+        const menu = document.getElementById('categoryDropdownMenu');
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function updateLabel() {
+        const checked = [...document.querySelectorAll('#categoryDropdownMenu input:checked')]
+            .map(cb => cb.value);
+        document.getElementById('categoryDropdownLabel').textContent =
+            checked.length === 0 ? 'All Categories' : checked.join(', ');
+    }
+
+    document.addEventListener('click', function(e) {
+        const wrapper = document.getElementById('categoryDropdownWrapper');
+        if (!wrapper.contains(e.target)) {
+            document.getElementById('categoryDropdownMenu').style.display = 'none';
+        }
+    });
+
+    updateLabel();
+</script>
+
+</body>
+</html>

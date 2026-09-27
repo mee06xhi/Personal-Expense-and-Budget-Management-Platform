@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Budget Status</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand">
+        <div class="brand-icon">₹</div>
+        <div>
+            <div class="brand-name">LEDGER</div>
+            <div class="brand-sub">Expense Tracker</div>
+        </div>
+    </div>
+    <nav>
+        <a href="/">                    <span class="nav-icon">◈</span> Dashboard</a>
+        <a href="/expenses">            <span class="nav-icon">◎</span> Expenses</a>
+        <a href="/budget-status"><span class="nav-icon">◉</span> Budget Status</a>
+    </nav>
+</aside>
+
+<main class="main">
+    <div class="page">
+        <h2 class="page-title">Budget Status</h2>
+
+        <div class="stat-grid">
+
+            <div class="stat-card" style="border-top-color:#5b9bd5;">
+                <div class="lbl">Budget</div>
+                <div class="val" style="color:#5b9bd5;">
+                    ₹<span th:text="${budget}">0</span>
+                </div>
+            </div>
+
+            <div class="stat-card" style="border-top-color:#e07b54;">
+                <div class="lbl">Used</div>
+                <div class="val" style="color:#e07b54;">
+                    ₹<span th:text="${used}">0</span>
+                </div>
+            </div>
+
+            <div class="stat-card"
+                 th:classappend="${remaining < 0} ? 'over-budget' : 'under-budget'">
+                <div class="lbl">Remaining</div>
+                <div class="val">
+                    ₹<span th:text="${remaining}">0</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Progress bar showing % used -->
+        <div class="card" style="max-width: 480px;">
+            <div style="display:flex; justify-content:space-between;
+                        font-size:13px; color:#888; margin-bottom:10px;">
+                <span>Budget used</span>
+                <span th:text="${budget > 0}
+                    ? ${#numbers.formatDecimal(used/budget*100, 1, 0)} + '%'
+                    : 'No budget set'">
+                </span>
+            </div>
+            <div class="progress-bar" style="height:8px;">
+                <div class="progress-fill"
+                    th:style="${budget > 0}
+                    ? 'width:' + (${used >= budget} ? '100' : ${#numbers.formatDecimal(used / budget * 100, 1, 0)})
+                    + '%; background:' + (${used > budget} ? '#e06b8b' : '#e07b54')
+                    : 'width:0%'">
+                </div>
+            </div>
+
+            <!-- Warning message — shown conditionally -->
+            <div class="alert" style="margin-top:16px; margin-bottom:0;"
+                 th:if="${budget > 0 and used >= budget}">
+                ⚠ You have exceeded your budget this month!
+            </div>
+            <div class="alert" style="margin-top:16px; margin-bottom:0;
+                                       background:#2a1f10; border-color:#e8c547; color:#e8c547;"
+                 th:if="${budget > 0 and used < budget and used >= budget * 0.8}">
+                ⚠ You've used over 80% of your budget.
+            </div>
+        </div>
+
+        <a href="/" class="back-link">← Back to Dashboard</a>
+    </div>
+</main>
+
+</body>
+</html>
